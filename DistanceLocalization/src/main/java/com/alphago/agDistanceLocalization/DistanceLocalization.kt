@@ -65,7 +65,7 @@ class DistanceLocalization(
         poseEstimate = Pose(
             (if(calcXpe()) (q1Max - xList.average()) else (xList.average())) round 3,
             (if(calcYpe()) (q1Max - yList.average()) else (yList.average())) round 3,
-            theta.toDegrees round 3
+            theta
         )
     }
 

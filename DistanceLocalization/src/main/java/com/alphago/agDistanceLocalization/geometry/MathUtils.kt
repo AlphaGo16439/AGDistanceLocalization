@@ -4,6 +4,8 @@ import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.round
 
+const val TAU = 2.0*PI
+
 infix fun Double.fmod(other: Double) = ((this % other) + other) % other
 fun Double.contain2PI(): Double {
     var corrected = (this fmod (2.0* PI))
