@@ -16,8 +16,6 @@ ___
 
 ### Installation Instructions:
 
-[![](https://jitpack.io/v/San68bot/FTCDistanceSensorLocalization.svg)](https://jitpack.io/#San68bot/FTCDistanceSensorLocalization)
-
 In your ``build.dependencies.gradle`` file, add jitpack into repositories section:
 
 ```

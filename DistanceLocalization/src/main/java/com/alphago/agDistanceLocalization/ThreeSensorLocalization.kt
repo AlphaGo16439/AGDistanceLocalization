@@ -9,12 +9,12 @@ class ThreeSensorLocalization(
     frontSensorPosition: Pose,
     rightSensorPosition: Pose,
     private val sensorDistanceSafety: Double,
-    private val eval: Boolean = false
 ) {
     private val ls = LeftSensor(leftSensorPosition)
     private val fs = FrontSensor(frontSensorPosition)
     private val rs = RightSensor(rightSensorPosition)
     private val sensors get() = listOf(ls, fs, rs)
+    private var numberOfSensorsInUse = 0
 
     private var theta: Double = 0.0
 
@@ -28,6 +28,8 @@ class ThreeSensorLocalization(
     private enum class FinalPosition {ZERO_BASED, MAX_BASED}
     private var finalXOverride: FinalPosition? = null
     private var finalYOverride: FinalPosition? = null
+    
+    private val componentDifferenceThreshold = 1.5
 
     fun update(leftSensorDistance: Double, frontSensorDistance: Double, rightSensorDistance: Double, theta: Double): Pose {
         this.theta = theta
@@ -44,7 +46,10 @@ class ThreeSensorLocalization(
         return poseEstimate
     }
 
+    private fun resetVars() { xList.clear(); yList.clear(); finalXOverride = null; finalYOverride = null; numberOfSensorsInUse = 0 }
+
     private fun readySensors() {
+        resetVars()
         sensors.forEach { sensor ->
             sensor.apply {
                 inRange = distance in 0.25..sensorDistanceSafety
@@ -53,16 +58,16 @@ class ThreeSensorLocalization(
                 }
             }
         }
+        sensors.forEach { if (it.calculateFor != CalcPosition.Nothing) numberOfSensorsInUse++ }
+        adjustPositionCalculationTwoSensors()
     }
 
     private fun run() {
         readySensors()
-        xList.clear(); yList.clear()
-        finalXOverride = null; finalYOverride = null
         sensors.forEach { sensor ->
             sensor.apply {
                 if (inRange)
-                    if (numberOfSensorsInUse() != 3) calcRawPosition(this) else calcRawPositionAllSensors(this)
+                    if (numberOfSensorsInUse != 3) calcRawPosition(this) else calcRawPositionAllSensors(this)
             }
         }
         if (xList.isEmpty()) xList.add(Double.NaN); if (yList.isEmpty()) yList.add(Double.NaN)
@@ -71,13 +76,39 @@ class ThreeSensorLocalization(
             (if(calcFinalY() == FinalPosition.MAX_BASED) (q1Max - yList.average()) else (yList.average())) round 3,
             theta
         )
-        if (eval) evaluate()
     }
 
-    private fun numberOfSensorsInUse(): Int {
-        var count = 0
-        sensors.forEach { if (it.calculateFor != CalcPosition.Nothing) count++ }
-        return count
+    private fun adjustPositionCalculationTwoSensors() {
+        if (numberOfSensorsInUse == 2){
+            when (val chc = closestHalfCardinal(theta)) {
+                PI/4.0, 5.0*PI/4.0 -> {
+                    if (ls.inRange) {
+                        if ((theta - chc) > 0.0 && (fs.verticalComponent() difference ls.verticalComponent()).absoluteValue < componentDifferenceThreshold)
+                            ls.calculateFor = CalcPosition.Y
+                        else if ((theta - chc) < 0.0 && (ls.verticalComponent() difference fs.verticalComponent()).absoluteValue < componentDifferenceThreshold)
+                            fs.calculateFor = CalcPosition.Y
+                    } else if (rs.inRange) {
+                        if ((theta - chc) > 0.0 && (rs.horizontalComponent() difference fs.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
+                            fs.calculateFor = CalcPosition.X
+                        else if ((theta - chc) < 0.0 && (fs.horizontalComponent() difference rs.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
+                            rs.calculateFor = CalcPosition.X
+                    }
+                }
+                3.0*PI/4.0, 7.0*PI/4.0 -> {
+                    if (ls.inRange) {
+                        if ((theta - chc) > 0.0 && (fs.horizontalComponent() difference ls.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
+                            ls.calculateFor = CalcPosition.X
+                        else if ((theta - chc) < 0.0 && (ls.horizontalComponent() difference fs.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
+                            fs.calculateFor = CalcPosition.X
+                    } else if (rs.inRange) {
+                        if ((theta - chc) > 0.0 && (rs.verticalComponent() difference fs.verticalComponent()).absoluteValue < componentDifferenceThreshold)
+                            fs.calculateFor = CalcPosition.Y
+                        else if ((theta - chc) < 0.0 && (fs.verticalComponent() difference rs.verticalComponent()).absoluteValue < componentDifferenceThreshold)
+                            rs.calculateFor = CalcPosition.Y
+                    }
+                }
+            }
+        }
     }
 
     private fun calcRawPosition(sensor: Sensors) {
@@ -141,15 +172,14 @@ class ThreeSensorLocalization(
             || yList.contains(Double.NaN)) return FinalPosition.ZERO_BASED
         return FinalPosition.MAX_BASED
     }
+}
 
-    private fun evaluate() {
-        sensors.forEach { println("${it.id} is calculating for ${it.calculateFor} with distance ${it.distance}") }
-        println()
-        println("x-list: $xList")
-        println("y-list: $yList")
-        println()
-        println("x-list avg: ${xList.average() round 3}")
-        println("y-list avg: ${yList.average() round 3}")
-        println()
-    }
+fun main() {
+    val time = System.currentTimeMillis()
+    val tsl = ThreeSensorLocalization(
+        Pose(-5.0, 0.0, PI), Pose(0.0, 5.0, PI/2.0),Pose(5.0, 0.0, 0.0),
+        45.0
+    )
+    println(tsl.update(0.0, 37.42641, 0.0, (45.0).toRadians))
+    println((System.currentTimeMillis() - time)/1000.0)
 }
