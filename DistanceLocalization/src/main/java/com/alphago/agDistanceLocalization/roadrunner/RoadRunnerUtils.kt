@@ -3,7 +3,6 @@ package com.alphago.agDistanceLocalization.roadrunner
 import com.acmerobotics.roadrunner.geometry.Pose2d
 import com.alphago.agDistanceLocalization.geometry.Pose
 import com.alphago.agDistanceLocalization.geometry.TAU
-import com.alphago.agDistanceLocalization.geometry.toDegrees
 import kotlin.math.PI
 
 //converts Quadrant 1 positions to roadrunner positions

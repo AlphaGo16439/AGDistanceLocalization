@@ -13,7 +13,7 @@ class ThreeSensorLocalization(
     private val ls = LeftSensor(leftSensorPosition)
     private val fs = FrontSensor(frontSensorPosition)
     private val rs = RightSensor(rightSensorPosition)
-    private val sensors get() = listOf(ls, fs, rs)
+    private val sensors = listOf(ls, fs, rs)
     private var numberOfSensorsInUse = 0
 
     private var theta: Double = 0.0
@@ -29,7 +29,7 @@ class ThreeSensorLocalization(
     private var finalXOverride: FinalPosition? = null
     private var finalYOverride: FinalPosition? = null
     
-    private val componentDifferenceThreshold = 1.5
+    private val componentDifferenceThreshold = 1.0
 
     fun update(leftSensorDistance: Double, frontSensorDistance: Double, rightSensorDistance: Double, theta: Double): Pose {
         this.theta = theta
@@ -55,7 +55,7 @@ class ThreeSensorLocalization(
                 inRange = distance in 0.25..sensorDistanceSafety
                 if (inRange) {
                     calculateFor = when (closestCardinal((position.rad + theta).contain2PI())) {
-                        0.0 -> CalcPosition.X; PI / 2.0 -> CalcPosition.Y; PI -> CalcPosition.X; else -> CalcPosition.Y
+                        0.0 -> CalcPosition.X; PI/2.0 -> CalcPosition.Y; PI -> CalcPosition.X; else -> CalcPosition.Y
                     }
                     numberOfSensorsInUse++
                 }
@@ -68,8 +68,7 @@ class ThreeSensorLocalization(
         readySensors()
         sensors.forEach { sensor ->
             sensor.apply {
-                if (inRange)
-                    if (numberOfSensorsInUse != 3) calcRawPosition(this) else calcRawPositionAllSensors(this)
+                if (inRange) { if (numberOfSensorsInUse != 3) calcRawPosition(this) else calcRawPositionAllSensors(this) }
             }
         }
         if (xList.isEmpty()) xList.add(Double.NaN); if (yList.isEmpty()) yList.add(Double.NaN)
@@ -181,7 +180,7 @@ class ThreeSensorLocalization(
         return FinalPosition.MAX_BASED
     }
 
-    fun eval(): String {
+    fun debug(): String {
         return """
             Left is calculating for ${ls.calculateFor} with distance ${ls.distance}
             Front is calculating for ${fs.calculateFor} with distance ${fs.distance}
@@ -194,30 +193,4 @@ class ThreeSensorLocalization(
             y-list avg ${yList.average()}
         """.trimIndent()
     }
-}
-
-fun main() {
-    val leftPose1 = Pose(-5.0, 0.0, PI)
-    val leftPose2 = Pose(-8.25, 7.5, PI)
-    val leftPose3 = Pose(-7.0, -5.0, PI)
-
-    val frontPose1 = Pose(0.0, 5.0, PI/2.0)
-    val frontPose2 = Pose(-3.5, 8.0, PI/2.0)
-    val frontPose3 = Pose(5.0, 6.0, PI/2.0)
-
-    val rightPose1 = Pose(5.0, 0.0, 0.0)
-    val rightPose2 = Pose(8.25, 7.5, 0.0)
-    val rightPose3 = Pose(9.0, 5.0, 0.0)
-
-    val time = System.currentTimeMillis()
-    println("x should be ${Double.NaN}")
-    println("y should be ${22.0}")
-    println()
-
-    val tsl = ThreeSensorLocalization(
-        leftPose3, frontPose3, rightPose3, 45.0
-    )
-    println(tsl.eval())
-    println(tsl.update(29.11270, 30.11270, 0.0, (225.0).toRadians))
-    println((System.currentTimeMillis() - time)/1000.0)
 }

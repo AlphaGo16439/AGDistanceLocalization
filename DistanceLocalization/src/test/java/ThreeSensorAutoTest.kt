@@ -44,7 +44,7 @@ class TestCase(
     left: Double, front: Double, right: Double,
     thetaDEG: Double, private val expX: Double, private val expY: Double
 ) {
-    var success = false
+    private var success = false
     private val tsl: Pose
     init {
         tsl = ThreeSensorLocalization(lsPosn, fsPos, rsPose, maxDistance)

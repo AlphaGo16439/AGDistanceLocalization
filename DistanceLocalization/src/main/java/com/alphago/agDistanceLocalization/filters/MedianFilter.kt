@@ -4,7 +4,7 @@ class MedianFilter(private val n: Int) {
     private val window = ArrayList<Double>()
 
     init {
-        if (n <= 0) throw IllegalArgumentException("n must not be less than or equal to 0.")
+        if (n <= 0) throw IllegalArgumentException("n must not be less than or equal to 0")
     }
 
     fun push(value: Double): MedianFilter {
