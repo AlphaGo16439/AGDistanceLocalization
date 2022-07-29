@@ -9,7 +9,7 @@ class DistanceLocalization(
     frontSensorPosition: Pose,
     rightSensorPosition: Pose,
     private val sensorDistanceSafety: Double,
-    private val specialConditionThresh: Double = (10.0).toRadians
+    private val eval: Boolean = false
 ) {
 
     private val ls = LeftSensor(leftSensorPosition)
@@ -67,6 +67,7 @@ class DistanceLocalization(
             (if(calcYpe()) (q1Max - yList.average()) else (yList.average())) round 3,
             theta
         )
+        if (eval) evaluate()
     }
 
     private fun numberOfSensorsInUse(): Int {
@@ -85,29 +86,29 @@ class DistanceLocalization(
     }
 
     private fun calcXYSpecialCondition(sensor: Sensors) {
-        when {
-            abs(theta - PI/4.0) <= specialConditionThresh -> {
+        when(closestHalfCardinal(theta)) {
+            PI/4.0, 5.0*PI/4.0 -> {
                 sensor.apply {
-                    if (id == "left" || id == "front") xList.add(horizontalComponent())
-                    yList.add(verticalComponent())
+                    if (id == "left") yList.add(verticalComponent())
+                    if (id == "front") {
+                        if ((verticalComponent() difference ls.verticalComponent()) threshold 1.0)
+                            yList.add(verticalComponent())
+                        else if ((horizontalComponent() difference rs.horizontalComponent()) threshold 1.0)
+                            xList.add(horizontalComponent())
+                    }
+                    if (id == "right") xList.add(horizontalComponent())
                 }
             }
-            abs(theta - 3.0*PI/4.0) <= specialConditionThresh -> {
+            3.0*PI/4.0, 7.0*PI/4.0 -> {
                 sensor.apply {
-                    xList.add(horizontalComponent())
-                    if (id == "front" || id == "right") yList.add(verticalComponent())
-                }
-            }
-            abs(theta - 5.0*PI/4.0) <= specialConditionThresh -> {
-                sensor.apply {
-                    xList.add(horizontalComponent())
-                    if (id == "left" || id == "front") yList.add(verticalComponent())
-                }
-            }
-            abs(theta - 7.0*PI/4.0) <= specialConditionThresh -> {
-                sensor.apply {
-                    if (id == "front" || id == "right") xList.add(horizontalComponent())
-                    yList.add(verticalComponent())
+                    if (id == "left") xList.add(horizontalComponent())
+                    if (id == "front") {
+                        if ((verticalComponent() difference rs.verticalComponent()) threshold 1.0)
+                            yList.add(verticalComponent())
+                        else if ((horizontalComponent() difference ls.horizontalComponent()) threshold 1.0)
+                            xList.add(horizontalComponent())
+                    }
+                    if (id == "right") yList.add(verticalComponent())
                 }
             }
             else -> calcXY(sensor)
@@ -128,5 +129,16 @@ class DistanceLocalization(
             || (rs.calculateFor == CalcPosition.Y && theta in (5.0*PI/4.0)..(3.0*PI/4.0))
             || yList.contains(Double.NaN)) return false
         return true //true means (144 - y), false means y
+    }
+
+    private fun evaluate() {
+        sensors.forEach { println("${it.id} is calculating for ${it.calculateFor} with distance ${it.distance}") }
+        println()
+        println("x-list: $xList")
+        println("y-list: $yList")
+        println()
+        println("x-list avg: ${xList.average() round 3}")
+        println("y-list avg: ${yList.average() round 3}")
+        println()
     }
 }

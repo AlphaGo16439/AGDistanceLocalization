@@ -2,6 +2,7 @@ package com.alphago.agDistanceLocalization.geometry
 
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.absoluteValue
 import kotlin.math.round
 
 const val TAU = 2.0*PI
@@ -19,12 +20,24 @@ infix fun Double.round(decimals: Int): Double {
     return round(this * multiplier) / multiplier
 }
 
+private fun findClosest(value: Double, list: ArrayList<Double>): Double {
+    var dp = arrayListOf(0.0, Double.MAX_VALUE)
+    for (i in list)
+        if (abs(value - i) < dp[1]) dp = arrayListOf(list.indexOf(i).toDouble(), abs(value - i))
+    return if (list[dp[0].toInt()] == 2.0*PI) 0.0 else list[dp[0].toInt()]
+}
+
 fun closestCardinal(rad: Double): Double {
-    val cardinalAngles = arrayListOf(0.0, PI /2, PI, 3.0* PI /2.0, 2.0* PI); var dp = arrayListOf(0.0, 10.0)
-    for (i in cardinalAngles)
-        if (abs(rad - i) < dp[1]) dp = arrayListOf(cardinalAngles.indexOf(i).toDouble(), abs(rad - i))
-    return if (cardinalAngles[dp[0].toInt()] == 2.0*PI) 0.0 else cardinalAngles[dp[0].toInt()]
+    val closest = findClosest(rad, arrayListOf(0.0, PI/2.0, PI, 3.0*PI/2.0, 2.0* PI))
+    return if (closest == 2.0*PI) 0.0 else closest
+}
+
+fun closestHalfCardinal(rad: Double): Double {
+    return findClosest(rad, arrayListOf(PI/4.0, 3.0*PI/4.0, 5.0*PI/4.0, 7.0*PI/4.0))
 }
 
 val Double.toRadians get() = Math.toRadians(this)
 val Double.toDegrees get() = Math.toDegrees(this)
+
+infix fun Double.threshold(threshold: Double) = this.absoluteValue < threshold
+infix fun Double.difference(other: Double) = (this - other)
