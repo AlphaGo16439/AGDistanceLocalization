@@ -8,8 +8,7 @@ class ThreeSensorLocalization(
     leftSensorPosition: Pose,
     frontSensorPosition: Pose,
     rightSensorPosition: Pose,
-    private val sensorDistanceSafety: Double,
-    private val eval: Boolean = false
+    private val sensorDistanceSafety: Double
 ) {
     private val ls = LeftSensor(leftSensorPosition)
     private val fs = FrontSensor(frontSensorPosition)
@@ -44,7 +43,6 @@ class ThreeSensorLocalization(
             )
         }
         run()
-        if (eval) eval()
         return poseEstimate
     }
 
@@ -55,12 +53,14 @@ class ThreeSensorLocalization(
         sensors.forEach { sensor ->
             sensor.apply {
                 inRange = distance in 0.25..sensorDistanceSafety
-                if (inRange) calculateFor = when(closestCardinal((position.rad + theta).contain2PI())) {
-                    0.0 -> CalcPosition.X; PI/2.0 -> CalcPosition.Y; PI -> CalcPosition.X; else -> CalcPosition.Y
+                if (inRange) {
+                    calculateFor = when (closestCardinal((position.rad + theta).contain2PI())) {
+                        0.0 -> CalcPosition.X; PI / 2.0 -> CalcPosition.Y; PI -> CalcPosition.X; else -> CalcPosition.Y
+                    }
+                    numberOfSensorsInUse++
                 }
             }
         }
-        sensors.forEach { if (it.calculateFor != CalcPosition.Nothing) numberOfSensorsInUse++ }
         if (numberOfSensorsInUse == 2) adjustPositionCalculationTwoSensors()
     }
 
@@ -181,15 +181,18 @@ class ThreeSensorLocalization(
         return FinalPosition.MAX_BASED
     }
 
-    private fun eval() {
-        sensors.forEach { println("${it.id} is calculating for ${it.calculateFor} with distance ${it.distance}") }; println()
-        println("""
+    fun eval(): String {
+        return """
+            Left is calculating for ${ls.calculateFor} with distance ${ls.distance}
+            Front is calculating for ${fs.calculateFor} with distance ${fs.distance}
+            Right is calculating for ${rs.calculateFor} with distance ${rs.distance}
+            
             x-list: $xList
             y-list: $yList
             
             x-list avg ${xList.average()}
             y-list avg ${yList.average()}
-        """.trimIndent()); println()
+        """.trimIndent()
     }
 }
 
@@ -212,8 +215,9 @@ fun main() {
     println()
 
     val tsl = ThreeSensorLocalization(
-        leftPose3, frontPose3, rightPose3, 45.0, true
+        leftPose3, frontPose3, rightPose3, 45.0
     )
+    println(tsl.eval())
     println(tsl.update(29.11270, 30.11270, 0.0, (225.0).toRadians))
     println((System.currentTimeMillis() - time)/1000.0)
 }

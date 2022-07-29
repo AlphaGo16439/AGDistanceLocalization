@@ -1,9 +1,10 @@
-# FTCDistanceSensorLocalization
+# AGDistanceLocalization
 A simple and easy-to-use library, written in Kotlin, to aid in the process of localizing your robot using Distance Sensors!
 This library contains all the necessary calculations to localize on the FIRST Tech Challenge field in a "plug and play" style format!
 
 ### Advantages of this library
-* Efficient position estimation, irrespective of robot heading and sensor location!
+* Efficient position estimation!
+* Takes factors like sensor location and robot heading into account!
 * Accounts for the ['corner cases problem'](https://alphago.gitbook.io/agdistancelocalization/the-corner-case-problem), where all sensors are in use!
 * Support for the RoadRunner library!
 * Seamless integration into your code base!
