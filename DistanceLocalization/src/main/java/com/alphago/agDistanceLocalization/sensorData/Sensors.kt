@@ -33,7 +33,7 @@ class LeftSensor(position: Pose): Sensors(position) {
     }
 
     override fun verticalComponent(): Double {
-       return abs(x * sin(theta) + y * cos(theta)) + abs(distance * sin(theta))
+       return if (y >= 0.0) abs(x * sin(theta) + y * cos(theta)) + abs(distance * sin(theta)) else ((x * sin(theta) + y * cos(theta)) - (distance * sin(theta))).absoluteValue
     }
 
     override fun horizontalComponent(): Double {
@@ -73,7 +73,7 @@ class RightSensor(position: Pose): Sensors(position) {
     }
 
     override fun verticalComponent(): Double {
-        return abs(x * sin(theta) + y * cos(theta)) + abs(distance * sin(theta))
+        return if (y >= 0.0) abs(x * sin(theta) + y * cos(theta)) + abs(distance * sin(theta)) else ((x * sin(theta) + y * cos(theta)) + (distance * sin(theta))).absoluteValue
     }
 
     override fun horizontalComponent(): Double {

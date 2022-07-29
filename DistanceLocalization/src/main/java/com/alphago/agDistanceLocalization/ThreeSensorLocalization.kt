@@ -21,11 +21,11 @@ class ThreeSensorLocalization(
     private val xList = mutableListOf<Double>()
     private val yList = mutableListOf<Double>()
 
-    private val q1Max = 144.0
+    private val quadrant1Max = 144.0
 
     private var poseEstimate = Pose(0.0, 0.0, 0.0)
 
-    private enum class FinalPosition {ZERO_BASED, MAX_BASED}
+    private enum class FinalPosition { ZERO_BASED, MAX_BASED }
     private var finalXOverride: FinalPosition? = null
     private var finalYOverride: FinalPosition? = null
     
@@ -43,6 +43,14 @@ class ThreeSensorLocalization(
             )
         }
         run()
+        sensors.forEach { println("${it.id} is calculating for ${it.calculateFor} with distance ${it.distance}") }
+        println()
+        println(xList)
+        println(yList)
+        println()
+        println(xList.average())
+        println(yList.average())
+        println()
         return poseEstimate
     }
 
@@ -72,8 +80,8 @@ class ThreeSensorLocalization(
         }
         if (xList.isEmpty()) xList.add(Double.NaN); if (yList.isEmpty()) yList.add(Double.NaN)
         poseEstimate = Pose(
-            (if(calcFinalX() == FinalPosition.MAX_BASED) (q1Max - xList.average()) else (xList.average())) round 3,
-            (if(calcFinalY() == FinalPosition.MAX_BASED) (q1Max - yList.average()) else (yList.average())) round 3,
+            (if(calcFinalX() == FinalPosition.MAX_BASED) (quadrant1Max - xList.average()) else (xList.average())) round 3,
+            (if(calcFinalY() == FinalPosition.MAX_BASED) (quadrant1Max - yList.average()) else (yList.average())) round 3,
             theta
         )
     }
@@ -167,8 +175,8 @@ class ThreeSensorLocalization(
     private fun calcFinalY(): FinalPosition {
         finalYOverride?.apply { return this }
         if ((ls.calculateFor == CalcPosition.Y && theta in (PI/4.0)..(7.0*PI/4.0))
-            || (fs.calculateFor == CalcPosition.Y && theta in (7.0*PI/4.0)..(5.0*PI/4.0))
-            || (rs.calculateFor == CalcPosition.Y && theta in (5.0*PI/4.0)..(3.0*PI/4.0))
+            || (fs.calculateFor == CalcPosition.Y && theta in (5.0*PI/4.0)..(7.0*PI/4.0))
+            || (rs.calculateFor == CalcPosition.Y && theta in (3.0*PI/4.0)..(5.0*PI/4.0))
             || yList.contains(Double.NaN)) return FinalPosition.ZERO_BASED
         return FinalPosition.MAX_BASED
     }
@@ -176,10 +184,14 @@ class ThreeSensorLocalization(
 
 fun main() {
     val time = System.currentTimeMillis()
+    println("x should be ${144.0 - 25.0}")
+    println("y should be ${15.0}")
+    println()
+
     val tsl = ThreeSensorLocalization(
-        Pose(-5.0, 0.0, PI), Pose(0.0, 5.0, PI/2.0),Pose(5.0, 0.0, 0.0),
-        45.0
+        Pose(-8.25, -7.5, PI), Pose(5.0, 8.0, PI/2.0),Pose(8.25, -7.5, 0.0),
+        55.0
     )
-    println(tsl.update(0.0, 37.42641, 0.0, (45.0).toRadians))
+    println(tsl.update(0.0, 19.72820, 21.41705, (145.0).toRadians))
     println((System.currentTimeMillis() - time)/1000.0)
 }
