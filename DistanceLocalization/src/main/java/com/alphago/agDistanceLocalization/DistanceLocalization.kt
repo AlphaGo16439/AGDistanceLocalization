@@ -26,8 +26,8 @@ class DistanceLocalization(
     private var poseEstimate = Pose(0.0, 0.0, 0.0)
 
     private enum class FinalPosition {ZERO_BASED, MAX_BASED}
-    private var finalXoverride: FinalPosition? = null
-    private var finalYoverride: FinalPosition? = null
+    private var finalXOverride: FinalPosition? = null
+    private var finalYOverride: FinalPosition? = null
 
     fun update(leftSensorDistance: Double, frontSensorDistance: Double, rightSensorDistance: Double, theta: Double): Pose {
         this.theta = theta
@@ -44,7 +44,7 @@ class DistanceLocalization(
         return poseEstimate
     }
 
-    private fun assignSensors() {
+    private fun readySensors() {
         sensors.forEach { sensor ->
             sensor.apply {
                 inRange = distance in 0.25..sensorDistanceSafety
@@ -56,19 +56,19 @@ class DistanceLocalization(
     }
 
     private fun run() {
-        assignSensors()
+        readySensors()
         xList.clear(); yList.clear()
-        finalXoverride = null; finalYoverride = null
+        finalXOverride = null; finalYOverride = null
         sensors.forEach { sensor ->
             sensor.apply {
                 if (inRange)
-                    if (numberOfSensorsInUse() != 3) calcXY(this) else calcXYSpecialCondition(this)
+                    if (numberOfSensorsInUse() != 3) calcRawPosition(this) else calcRawPositionAllSensors(this)
             }
         }
         if (xList.isEmpty()) xList.add(Double.NaN); if (yList.isEmpty()) yList.add(Double.NaN)
         poseEstimate = Pose(
-            (if(calcXpe() == FinalPosition.MAX_BASED) (q1Max - xList.average()) else (xList.average())) round 3,
-            (if(calcYpe() == FinalPosition.MAX_BASED) (q1Max - yList.average()) else (yList.average())) round 3,
+            (if(calcFinalX() == FinalPosition.MAX_BASED) (q1Max - xList.average()) else (xList.average())) round 3,
+            (if(calcFinalY() == FinalPosition.MAX_BASED) (q1Max - yList.average()) else (yList.average())) round 3,
             theta
         )
         if (eval) evaluate()
@@ -80,7 +80,7 @@ class DistanceLocalization(
         return count
     }
 
-    private fun calcXY(sensor: Sensors) {
+    private fun calcRawPosition(sensor: Sensors) {
         sensor.apply {
             if (calculateFor == CalcPosition.X)
                 xList.add(horizontalComponent())
@@ -89,8 +89,8 @@ class DistanceLocalization(
         }
     }
 
-    private fun calcXYSpecialCondition(sensor: Sensors) {
-        when(val cfc = closestHalfCardinal(theta)) {
+    private fun calcRawPositionAllSensors(sensor: Sensors) {
+        when(val closestHC = closestHalfCardinal(theta)) {
             PI/4.0, 5.0*PI/4.0 -> {
                 sensor.apply {
                     if (id == "left") yList.add(verticalComponent())
@@ -102,9 +102,10 @@ class DistanceLocalization(
                     }
                     if (id == "right") xList.add(horizontalComponent())
                 }
-                finalXoverride = if (cfc == PI/4.0) FinalPosition.MAX_BASED else FinalPosition.ZERO_BASED
-                finalYoverride = if (cfc == PI/4.0) FinalPosition.MAX_BASED else FinalPosition.ZERO_BASED
+                finalXOverride = if (closestHC == PI/4.0) FinalPosition.MAX_BASED else FinalPosition.ZERO_BASED
+                finalYOverride = if (closestHC == PI/4.0) FinalPosition.MAX_BASED else FinalPosition.ZERO_BASED
             }
+
             3.0*PI/4.0, 7.0*PI/4.0 -> {
                 sensor.apply {
                     if (id == "left") xList.add(horizontalComponent())
@@ -116,15 +117,15 @@ class DistanceLocalization(
                     }
                     if (id == "right") yList.add(verticalComponent())
                 }
-                finalXoverride = if (cfc == 3.0*PI/4.0) FinalPosition.ZERO_BASED else FinalPosition.MAX_BASED
-                finalYoverride = if (cfc == 3.0*PI/4.0) FinalPosition.MAX_BASED else FinalPosition.ZERO_BASED
+                finalXOverride = if (closestHC == 3.0*PI/4.0) FinalPosition.ZERO_BASED else FinalPosition.MAX_BASED
+                finalYOverride = if (closestHC == 3.0*PI/4.0) FinalPosition.MAX_BASED else FinalPosition.ZERO_BASED
             }
-            else -> calcXY(sensor)
+            else -> calcRawPosition(sensor)
         }
     }
 
-    private fun calcXpe(): FinalPosition {
-        finalXoverride?.apply { return this }
+    private fun calcFinalX(): FinalPosition {
+        finalXOverride?.apply { return this }
         if ((ls.calculateFor == CalcPosition.X && theta in (PI/4.0)..(3.0*PI/4.0))
             || (fs.calculateFor == CalcPosition.X && theta in (3.0*PI/4.0)..(5.0*PI/4.0))
             || (rs.calculateFor == CalcPosition.X && theta in (5.0*PI/4.0)..(7.0*PI/4.0))
@@ -132,8 +133,8 @@ class DistanceLocalization(
         return FinalPosition.MAX_BASED
     }
 
-    private fun calcYpe(): FinalPosition {
-        finalYoverride?.apply { return this }
+    private fun calcFinalY(): FinalPosition {
+        finalYOverride?.apply { return this }
         if ((ls.calculateFor == CalcPosition.Y && theta in (PI/4.0)..(7.0*PI/4.0))
             || (fs.calculateFor == CalcPosition.Y && theta in (7.0*PI/4.0)..(5.0*PI/4.0))
             || (rs.calculateFor == CalcPosition.Y && theta in (5.0*PI/4.0)..(3.0*PI/4.0))
