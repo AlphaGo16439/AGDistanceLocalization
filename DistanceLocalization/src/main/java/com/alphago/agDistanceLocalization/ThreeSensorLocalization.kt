@@ -4,7 +4,7 @@ import com.alphago.agDistanceLocalization.geometry.*
 import com.alphago.agDistanceLocalization.sensorData.*
 import kotlin.math.*
 
-class DistanceLocalization(
+class ThreeSensorLocalization(
     leftSensorPosition: Pose,
     frontSensorPosition: Pose,
     rightSensorPosition: Pose,

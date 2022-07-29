@@ -2,7 +2,6 @@ package com.alphago.agDistanceLocalization.geometry
 
 import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.absoluteValue
 import kotlin.math.round
 
 const val TAU = 2.0*PI
@@ -39,5 +38,4 @@ fun closestHalfCardinal(rad: Double): Double {
 val Double.toRadians get() = Math.toRadians(this)
 val Double.toDegrees get() = Math.toDegrees(this)
 
-infix fun Double.threshold(threshold: Double) = this.absoluteValue < threshold
 infix fun Double.difference(other: Double) = (this - other)
