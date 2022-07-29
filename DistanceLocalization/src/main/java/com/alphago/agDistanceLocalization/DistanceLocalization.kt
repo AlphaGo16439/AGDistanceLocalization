@@ -11,7 +11,6 @@ class DistanceLocalization(
     private val sensorDistanceSafety: Double,
     private val eval: Boolean = false
 ) {
-
     private val ls = LeftSensor(leftSensorPosition)
     private val fs = FrontSensor(frontSensorPosition)
     private val rs = RightSensor(rightSensorPosition)
@@ -25,6 +24,10 @@ class DistanceLocalization(
     private val q1Max = 144.0
 
     private var poseEstimate = Pose(0.0, 0.0, 0.0)
+
+    private enum class FinalPosition {ZERO_BASED, MAX_BASED}
+    private var finalXoverride: FinalPosition? = null
+    private var finalYoverride: FinalPosition? = null
 
     fun update(leftSensorDistance: Double, frontSensorDistance: Double, rightSensorDistance: Double, theta: Double): Pose {
         this.theta = theta
@@ -55,6 +58,7 @@ class DistanceLocalization(
     private fun run() {
         assignSensors()
         xList.clear(); yList.clear()
+        finalXoverride = null; finalYoverride = null
         sensors.forEach { sensor ->
             sensor.apply {
                 if (inRange)
@@ -63,8 +67,8 @@ class DistanceLocalization(
         }
         if (xList.isEmpty()) xList.add(Double.NaN); if (yList.isEmpty()) yList.add(Double.NaN)
         poseEstimate = Pose(
-            (if(calcXpe()) (q1Max - xList.average()) else (xList.average())) round 3,
-            (if(calcYpe()) (q1Max - yList.average()) else (yList.average())) round 3,
+            (if(calcXpe() == FinalPosition.MAX_BASED) (q1Max - xList.average()) else (xList.average())) round 3,
+            (if(calcYpe() == FinalPosition.MAX_BASED) (q1Max - yList.average()) else (yList.average())) round 3,
             theta
         )
         if (eval) evaluate()
@@ -86,7 +90,7 @@ class DistanceLocalization(
     }
 
     private fun calcXYSpecialCondition(sensor: Sensors) {
-        when(closestHalfCardinal(theta)) {
+        when(val cfc = closestHalfCardinal(theta)) {
             PI/4.0, 5.0*PI/4.0 -> {
                 sensor.apply {
                     if (id == "left") yList.add(verticalComponent())
@@ -98,6 +102,8 @@ class DistanceLocalization(
                     }
                     if (id == "right") xList.add(horizontalComponent())
                 }
+                finalXoverride = if (cfc == PI/4.0) FinalPosition.MAX_BASED else FinalPosition.ZERO_BASED
+                finalYoverride = if (cfc == PI/4.0) FinalPosition.MAX_BASED else FinalPosition.ZERO_BASED
             }
             3.0*PI/4.0, 7.0*PI/4.0 -> {
                 sensor.apply {
@@ -110,25 +116,29 @@ class DistanceLocalization(
                     }
                     if (id == "right") yList.add(verticalComponent())
                 }
+                finalXoverride = if (cfc == 3.0*PI/4.0) FinalPosition.ZERO_BASED else FinalPosition.MAX_BASED
+                finalYoverride = if (cfc == 3.0*PI/4.0) FinalPosition.MAX_BASED else FinalPosition.ZERO_BASED
             }
             else -> calcXY(sensor)
         }
     }
 
-    private fun calcXpe(): Boolean {
+    private fun calcXpe(): FinalPosition {
+        finalXoverride?.apply { return this }
         if ((ls.calculateFor == CalcPosition.X && theta in (PI/4.0)..(3.0*PI/4.0))
             || (fs.calculateFor == CalcPosition.X && theta in (3.0*PI/4.0)..(5.0*PI/4.0))
             || (rs.calculateFor == CalcPosition.X && theta in (5.0*PI/4.0)..(7.0*PI/4.0))
-            || xList.contains(Double.NaN)) return false
-        return true //true means (144 - x), false means x
+            || xList.contains(Double.NaN)) return FinalPosition.ZERO_BASED
+        return FinalPosition.MAX_BASED
     }
 
-    private fun calcYpe(): Boolean {
+    private fun calcYpe(): FinalPosition {
+        finalYoverride?.apply { return this }
         if ((ls.calculateFor == CalcPosition.Y && theta in (PI/4.0)..(7.0*PI/4.0))
             || (fs.calculateFor == CalcPosition.Y && theta in (7.0*PI/4.0)..(5.0*PI/4.0))
             || (rs.calculateFor == CalcPosition.Y && theta in (5.0*PI/4.0)..(3.0*PI/4.0))
-            || yList.contains(Double.NaN)) return false
-        return true //true means (144 - y), false means y
+            || yList.contains(Double.NaN)) return FinalPosition.ZERO_BASED
+        return FinalPosition.MAX_BASED
     }
 
     private fun evaluate() {

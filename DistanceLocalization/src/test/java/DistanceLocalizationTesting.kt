@@ -9,7 +9,7 @@ import kotlin.math.PI
 fun main() {
     val dl = DistanceLocalization(
         Pose(-5.0, 0.0, PI), Pose(0.0, 5.0, PI/2.0), Pose(5.0, 0.0, 0.0),
-        45.0, false
+        45.0, true
     )
-    println(dl.update(18.09401, 12.32051, 25.00000, (300.0).toRadians))
+    println(dl.update(0.0, 0.0, 10.0, (180.0).toRadians))
 }
