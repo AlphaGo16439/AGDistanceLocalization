@@ -11,5 +11,5 @@ fun main() {
         Pose(-5.0, 0.0, PI), Pose(0.0, 5.0, PI/2.0), Pose(5.0, 0.0, 0.0),
         45.0, true
     )
-    println(dl.update(0.0, 0.0, 10.0, (180.0).toRadians))
+    println(dl.update(8.05407, 10.55724, 18.33586, (130.0).toRadians))
 }

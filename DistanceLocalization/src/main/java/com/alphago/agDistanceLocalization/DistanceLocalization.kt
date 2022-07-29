@@ -95,9 +95,9 @@ class DistanceLocalization(
                 sensor.apply {
                     if (id == "left") yList.add(verticalComponent())
                     if (id == "front") {
-                        if ((verticalComponent() difference ls.verticalComponent()) threshold 1.0)
+                        if ((verticalComponent() difference ls.verticalComponent()).absoluteValue < (horizontalComponent() difference rs.horizontalComponent()).absoluteValue)
                             yList.add(verticalComponent())
-                        else if ((horizontalComponent() difference rs.horizontalComponent()) threshold 1.0)
+                        else if ((horizontalComponent() difference rs.horizontalComponent()).absoluteValue < (verticalComponent() difference ls.verticalComponent()).absoluteValue)
                             xList.add(horizontalComponent())
                     }
                     if (id == "right") xList.add(horizontalComponent())
@@ -109,9 +109,9 @@ class DistanceLocalization(
                 sensor.apply {
                     if (id == "left") xList.add(horizontalComponent())
                     if (id == "front") {
-                        if ((verticalComponent() difference rs.verticalComponent()) threshold 1.0)
+                        if ((verticalComponent() difference rs.verticalComponent()).absoluteValue < (horizontalComponent() difference ls.horizontalComponent()).absoluteValue)
                             yList.add(verticalComponent())
-                        else if ((horizontalComponent() difference ls.horizontalComponent()) threshold 1.0)
+                        else if ((horizontalComponent() difference ls.horizontalComponent()).absoluteValue < (verticalComponent() difference rs.verticalComponent()).absoluteValue)
                             xList.add(horizontalComponent())
                     }
                     if (id == "right") yList.add(verticalComponent())
