@@ -9,6 +9,7 @@ class ThreeSensorLocalization(
     frontSensorPosition: Pose,
     rightSensorPosition: Pose,
     private val sensorDistanceSafety: Double,
+    private val eval: Boolean = false
 ) {
     private val ls = LeftSensor(leftSensorPosition)
     private val fs = FrontSensor(frontSensorPosition)
@@ -43,14 +44,7 @@ class ThreeSensorLocalization(
             )
         }
         run()
-        sensors.forEach { println("${it.id} is calculating for ${it.calculateFor} with distance ${it.distance}") }
-        println()
-        println(xList)
-        println(yList)
-        println()
-        println(xList.average())
-        println(yList.average())
-        println()
+        if (eval) eval()
         return poseEstimate
     }
 
@@ -67,7 +61,7 @@ class ThreeSensorLocalization(
             }
         }
         sensors.forEach { if (it.calculateFor != CalcPosition.Nothing) numberOfSensorsInUse++ }
-        adjustPositionCalculationTwoSensors()
+        if (numberOfSensorsInUse == 2) adjustPositionCalculationTwoSensors()
     }
 
     private fun run() {
@@ -87,33 +81,39 @@ class ThreeSensorLocalization(
     }
 
     private fun adjustPositionCalculationTwoSensors() {
-        if (numberOfSensorsInUse == 2){
-            when (val chc = closestHalfCardinal(theta)) {
-                PI/4.0, 5.0*PI/4.0 -> {
-                    if (ls.inRange) {
-                        if ((theta - chc) > 0.0 && (fs.verticalComponent() difference ls.verticalComponent()).absoluteValue < componentDifferenceThreshold)
-                            ls.calculateFor = CalcPosition.Y
-                        else if ((theta - chc) < 0.0 && (ls.verticalComponent() difference fs.verticalComponent()).absoluteValue < componentDifferenceThreshold)
-                            fs.calculateFor = CalcPosition.Y
-                    } else if (rs.inRange) {
-                        if ((theta - chc) > 0.0 && (rs.horizontalComponent() difference fs.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
-                            fs.calculateFor = CalcPosition.X
-                        else if ((theta - chc) < 0.0 && (fs.horizontalComponent() difference rs.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
-                            rs.calculateFor = CalcPosition.X
-                    }
+        when (val chc = closestHalfCardinal(theta)) {
+            PI/4.0, 5.0*PI/4.0 -> {
+                if (ls.inRange) {
+                    if ((theta - chc) > 0.0 && (fs.verticalComponent() difference ls.verticalComponent()).absoluteValue < componentDifferenceThreshold)
+                        ls.calculateFor = CalcPosition.Y
+                    else if ((theta - chc) < 0.0 && (ls.verticalComponent() difference fs.verticalComponent()).absoluteValue < componentDifferenceThreshold)
+                        fs.calculateFor = CalcPosition.Y
+                    else if (theta - chc == 0.0 && (ls.verticalComponent() difference fs.verticalComponent()).absoluteValue < componentDifferenceThreshold)
+                        fs.calculateFor = CalcPosition.Y
+                } else if (rs.inRange) {
+                    if ((theta - chc) > 0.0 && (rs.horizontalComponent() difference fs.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
+                        fs.calculateFor = CalcPosition.X
+                    else if ((theta - chc) < 0.0 && (fs.horizontalComponent() difference rs.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
+                        rs.calculateFor = CalcPosition.X
+                    else if (theta == chc && (rs.horizontalComponent() difference fs.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
+                        fs.calculateFor = CalcPosition.X
                 }
-                3.0*PI/4.0, 7.0*PI/4.0 -> {
-                    if (ls.inRange) {
-                        if ((theta - chc) > 0.0 && (fs.horizontalComponent() difference ls.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
-                            ls.calculateFor = CalcPosition.X
-                        else if ((theta - chc) < 0.0 && (ls.horizontalComponent() difference fs.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
-                            fs.calculateFor = CalcPosition.X
-                    } else if (rs.inRange) {
-                        if ((theta - chc) > 0.0 && (rs.verticalComponent() difference fs.verticalComponent()).absoluteValue < componentDifferenceThreshold)
-                            fs.calculateFor = CalcPosition.Y
-                        else if ((theta - chc) < 0.0 && (fs.verticalComponent() difference rs.verticalComponent()).absoluteValue < componentDifferenceThreshold)
-                            rs.calculateFor = CalcPosition.Y
-                    }
+            }
+            3.0*PI/4.0, 7.0*PI/4.0 -> {
+                if (ls.inRange) {
+                    if ((theta - chc) > 0.0 && (fs.horizontalComponent() difference ls.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
+                        ls.calculateFor = CalcPosition.X
+                    else if ((theta - chc) < 0.0 && (ls.horizontalComponent() difference fs.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
+                        fs.calculateFor = CalcPosition.X
+                    else if (theta == chc && (ls.horizontalComponent() difference fs.horizontalComponent()).absoluteValue < componentDifferenceThreshold)
+                        fs.calculateFor = CalcPosition.X
+                } else if (rs.inRange) {
+                    if ((theta - chc) > 0.0 && (rs.verticalComponent() difference fs.verticalComponent()).absoluteValue < componentDifferenceThreshold)
+                        fs.calculateFor = CalcPosition.Y
+                    else if ((theta - chc) < 0.0 && (fs.verticalComponent() difference rs.verticalComponent()).absoluteValue < componentDifferenceThreshold)
+                        rs.calculateFor = CalcPosition.Y
+                    else if (theta == chc && (rs.verticalComponent() difference fs.verticalComponent()).absoluteValue < componentDifferenceThreshold)
+                        fs.calculateFor = CalcPosition.Y
                 }
             }
         }
@@ -180,18 +180,40 @@ class ThreeSensorLocalization(
             || yList.contains(Double.NaN)) return FinalPosition.ZERO_BASED
         return FinalPosition.MAX_BASED
     }
+
+    private fun eval() {
+        sensors.forEach { println("${it.id} is calculating for ${it.calculateFor} with distance ${it.distance}") }; println()
+        println("""
+            x-list: $xList
+            y-list: $yList
+            
+            x-list avg ${xList.average()}
+            y-list avg ${yList.average()}
+        """.trimIndent()); println()
+    }
 }
 
 fun main() {
+    val leftPose1 = Pose(-5.0, 0.0, PI)
+    val leftPose2 = Pose(-8.25, 7.5, PI)
+    val leftPose3 = Pose(-7.0, -5.0, PI)
+
+    val frontPose1 = Pose(0.0, 5.0, PI/2.0)
+    val frontPose2 = Pose(-3.5, 8.0, PI/2.0)
+    val frontPose3 = Pose(5.0, 6.0, PI/2.0)
+
+    val rightPose1 = Pose(5.0, 0.0, 0.0)
+    val rightPose2 = Pose(8.25, 7.5, 0.0)
+    val rightPose3 = Pose(9.0, 5.0, 0.0)
+
     val time = System.currentTimeMillis()
-    println("x should be ${144.0 - 25.0}")
-    println("y should be ${15.0}")
+    println("x should be ${Double.NaN}")
+    println("y should be ${22.0}")
     println()
 
     val tsl = ThreeSensorLocalization(
-        Pose(-8.25, -7.5, PI), Pose(5.0, 8.0, PI/2.0),Pose(8.25, -7.5, 0.0),
-        55.0
+        leftPose3, frontPose3, rightPose3, 45.0, true
     )
-    println(tsl.update(0.0, 19.72820, 21.41705, (145.0).toRadians))
+    println(tsl.update(29.11270, 30.11270, 0.0, (225.0).toRadians))
     println((System.currentTimeMillis() - time)/1000.0)
 }
