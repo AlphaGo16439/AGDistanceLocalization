@@ -80,3 +80,23 @@ class RightSensor(position: Pose): Sensors(position) {
         return abs(x * cos(theta) - y * sin(theta)) + abs(distance * cos(theta))
     }
 }
+
+class BackSensor(position: Pose): Sensors(position) {
+    override val id: String = "back"
+    override var distance: Double = 0.0
+    override var theta: Double = 0.0
+
+    override fun update(distance: Double, theta: Double): Sensors {
+        this.distance = distance
+        this.theta = theta
+        return this
+    }
+
+    override fun verticalComponent(): Double {
+        return abs(x * sin(theta) + y * cos(theta)) + abs(distance * cos(theta))
+    }
+
+    override fun horizontalComponent(): Double {
+        return abs(x * cos(theta) - y * sin(theta)) + abs(distance * sin(theta))
+    }
+}

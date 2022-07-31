@@ -21,7 +21,8 @@ class ThreeSensorLocalization(
     private val xList = mutableListOf<Double>()
     private val yList = mutableListOf<Double>()
 
-    private val quadrant1Max = 144.0
+    private var fieldMaxX = 144.0
+    private var fieldMaxY = 144.0
 
     private var poseEstimate = Pose(0.0, 0.0, 0.0)
 
@@ -73,8 +74,8 @@ class ThreeSensorLocalization(
         }
         if (xList.isEmpty()) xList.add(Double.NaN); if (yList.isEmpty()) yList.add(Double.NaN)
         poseEstimate = Pose(
-            (if(calcFinalX() == FinalPosition.MAX_BASED) (quadrant1Max - xList.average()) else (xList.average())) round 3,
-            (if(calcFinalY() == FinalPosition.MAX_BASED) (quadrant1Max - yList.average()) else (yList.average())) round 3,
+            (if(calcFinalX() == FinalPosition.MAX_BASED) (fieldMaxX - xList.average()) else (xList.average())) round 3,
+            (if(calcFinalY() == FinalPosition.MAX_BASED) (fieldMaxY - yList.average()) else (yList.average())) round 3,
             theta
         )
     }
@@ -178,6 +179,11 @@ class ThreeSensorLocalization(
             || (rs.calculateFor == CalcPosition.Y && theta in (3.0*PI/4.0)..(5.0*PI/4.0))
             || yList.contains(Double.NaN)) return FinalPosition.ZERO_BASED
         return FinalPosition.MAX_BASED
+    }
+
+    fun overrideFieldMax(xMax: Double, yMax: Double) {
+        fieldMaxX = xMax
+        fieldMaxY = yMax
     }
 
     fun debug(): String {
