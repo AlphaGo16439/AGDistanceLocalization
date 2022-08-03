@@ -3,9 +3,7 @@ package com.alphago.agDistanceLocalization.filters
 class MedianFilter(private val n: Int) {
     private val window = ArrayList<Double>()
 
-    init {
-        if (n <= 0) throw IllegalArgumentException("n must not be less than or equal to 0")
-    }
+    init { if (n <= 0) throw IllegalArgumentException("n must not be <= 0") }
 
     fun push(value: Double): MedianFilter {
         window.add(value)

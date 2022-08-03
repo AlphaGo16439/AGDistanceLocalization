@@ -1,8 +1,5 @@
 import com.alphago.agDistanceLocalization.ThreeSensorLocalization
-import com.alphago.agDistanceLocalization.geometry.Point
-import com.alphago.agDistanceLocalization.geometry.Pose
-import com.alphago.agDistanceLocalization.geometry.difference
-import com.alphago.agDistanceLocalization.geometry.toRadians
+import com.alphago.agDistanceLocalization.geometry.*
 import kotlin.math.PI
 import kotlin.math.absoluteValue
 
@@ -40,22 +37,52 @@ fun main() {
 }
 
 class TestCase(
-    lsPosn: Pose, fsPos: Pose, rsPose: Pose, maxDistance: Double,
+    lsPos: Pose, fsPos: Pose, rsPose: Pose, maxDistance: Double,
     left: Double, front: Double, right: Double,
     thetaDEG: Double, private val expX: Double, private val expY: Double
 ) {
     private var success = false
-    private val tsl: Pose
+    private val tsl: ThreeSensorLocalization
+    private val pose: Pose
+
     init {
-        tsl = ThreeSensorLocalization(lsPosn, fsPos, rsPose, maxDistance)
-            .update(left, front, right, thetaDEG.toRadians)
+        tsl = ThreeSensorLocalization(lsPos, fsPos, rsPose, maxDistance)
+        pose = tsl.update(left, front, right, thetaDEG.toRadians)
+        //println(tsl.debug())
 
         if(!expX.isNaN() && !expY.isNaN())
-            success = ((tsl.x difference expX).absoluteValue < 0.01 && (tsl.y difference expY).absoluteValue < 0.01)
+            success = ((pose.x difference expX).absoluteValue < 0.01 && (pose.y difference expY).absoluteValue < 0.01)
         else if (expX.isNaN())
-            success = (tsl.x.isNaN() && (tsl.y difference expY).absoluteValue < 0.01)
+            success = (pose.x.isNaN() && (pose.y difference expY).absoluteValue < 0.01)
         else if (expY.isNaN())
-            success = ((tsl.x difference expX).absoluteValue < 0.01 && tsl.y.isNaN())
+            success = ((pose.x difference expX).absoluteValue < 0.01 && pose.y.isNaN())
     }
-    override fun toString(): String = if (success) "SUCCESS" else "FAILED: calculated: ${tsl.point}, expected: ${Point(expX, expY)}"
+    override fun toString(): String = if (success) "SUCCESS" else "FAILED: calculated: ${pose.point}, expected: ${Point(expX, expY)}"
 }
+
+/* some testing stuff...ignore
+fun main() {
+    //val rad = (-90.0).toRadians
+    //left x zero based
+
+    */
+/*val rotated = rad - (rad - PI/2.0)
+    val max = (rotated + (PI - rad + PI/2.0)).contain2PI()
+    val min = (rotated + (PI - rad - PI/2.0)).contain2PI()*//*
+
+
+    //val max = (-rad + 5.0*PI/4.0).contain2PI()
+    //val min = (-rad + 3.0*PI/4.0).contain2PI()
+
+    */
+/*val rotated = rad - (rad - PI/2.0)
+    val max = (-rad + 3.0*PI/4.0 - PI/4.0).contain2PI()
+    val min = (-rad + 5.0*PI/4.0 + PI/4.0).contain2PI()
+
+    println(max.toDegrees round 3)
+    println(min.toDegrees round 3)*//*
+
+
+    val rad = (0.0).toRadians
+    println(within((301.0).toRadians, (-rad + 7.0*PI/4.0 - PI/6.0), (-rad + PI/4.0 + PI/6.0)))
+}*/

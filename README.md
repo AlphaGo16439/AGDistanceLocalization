@@ -11,6 +11,8 @@ This library contains all the necessary calculations to localize on the FIRST Te
 
 ### Coming soon to this library
 * Four Sensor Localization!
+* Secondary Localization fusion!
+* Override for field max X and max Y (for remote/off-season challenge field geometry only)
 
 ### To learn how to get setup, please visit our [online documentation](https://alphago.gitbook.io/agdistancelocalization/)!
 ___
@@ -31,6 +33,6 @@ Then, add this into dependencies:
 ```
 dependencies {
     ...
-    implementation 'com.github.AlphaGo16439:AGDistanceLocalization:v1.0.0'
+    implementation 'com.github.AlphaGo16439:AGDistanceLocalization:v1.0.1'
 }
 ```
